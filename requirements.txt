@@ -1,0 +1,142 @@
+# ========================================
+# GA+ Python 依賴項目
+# ========================================
+
+# Web 框架
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# 資料庫
+sqlalchemy==2.0.23
+alembic==1.13.1
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+
+# Redis
+redis==5.0.1
+aioredis==2.0.1
+
+# AI/ML 框架
+openai==1.3.7
+anthropic==0.7.8
+langchain==0.0.350
+langchain-openai==0.0.2
+tiktoken==0.5.2
+
+# 向量資料庫
+weaviate-client==3.25.3
+chromadb==0.4.18
+
+# Google Cloud 服務
+google-analytics-data==0.17.1
+google-cloud-bigquery==3.13.0
+google-auth==2.25.2
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+
+# 數據處理
+pandas==2.1.4
+numpy==1.25.2
+scipy==1.11.4
+
+# 異常檢測和分析
+scikit-learn==1.3.2
+statsmodels==0.14.0
+plotly==5.17.0
+
+# HTTP 客戶端
+httpx==0.25.2
+aiohttp==3.9.1
+requests==2.31.0
+
+# 安全和認證
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# 支付處理
+stripe==7.8.0
+
+# 郵件服務
+sendgrid==6.11.0
+
+# 監控和日誌
+structlog==23.2.0
+sentry-sdk[fastapi]==1.38.0
+prometheus-client==0.19.0
+
+# 配置管理
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# 測試
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
+factory-boy==3.3.0
+
+# 代碼品質
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+mypy==1.7.1
+
+# 文檔
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# 部署和容器化
+gunicorn==21.2.0
+docker==6.1.3
+
+# 工具和實用程式
+click==8.1.7
+rich==13.7.0
+typer==0.9.0
+schedule==1.2.0
+
+# 開發工具
+pre-commit==3.6.0
+jupyter==1.0.0
+ipython==8.18.1
+
+# 時間和日期處理
+python-dateutil==2.8.2
+pytz==2023.3
+
+# 加密和安全
+cryptography==41.0.8
+bcrypt==4.1.2
+
+# 圖像處理 (如需要)
+Pillow==10.1.0
+
+# 環境變數和配置
+environs==10.0.0
+
+# API 文檔
+fastapi-users==12.1.2
+fastapi-limiter==0.1.5
+
+# 背景任務
+celery==5.3.4
+flower==2.0.1
+
+# 緩存
+cachetools==5.3.2
+
+# 正則表達式增強
+regex==2023.10.3
+
+# JSON 處理
+orjson==3.9.10
+
+# URL 處理
+yarl==1.9.4
+
+# 異步支援
+asyncio-mqtt==0.13.0
+aiofiles==23.2.1 
