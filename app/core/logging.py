@@ -7,7 +7,12 @@ GA+ 結構化日誌配置
 import sys
 import structlog
 from typing import Any, Dict
+from datetime import datetime
 from app.core.config import settings
+from app.core.logging_v2 import SensitiveDataFilter, SecureLogger
+
+# 初始化敏感數據過濾器
+_sensitive_filter = SensitiveDataFilter()
 
 
 def setup_logging() -> None:
@@ -49,7 +54,7 @@ def get_logger(name: str = None) -> structlog.BoundLogger:
 
 def log_request(request_id: str, method: str, url: str, **kwargs) -> None:
     """
-    記錄 HTTP 請求日誌
+    記錄 HTTP 請求日誌（安全版本）
     
     Args:
         request_id: 請求ID
@@ -57,13 +62,16 @@ def log_request(request_id: str, method: str, url: str, **kwargs) -> None:
         url: 請求URL
         **kwargs: 其他參數
     """
+    # 過濾敏感數據
+    filtered_kwargs = _sensitive_filter.filter_dict(kwargs)
+    
     logger = get_logger("http.request")
     logger.info(
         "HTTP request",
         request_id=request_id,
         method=method,
         url=url,
-        **kwargs
+        **filtered_kwargs
     )
 
 
@@ -107,19 +115,40 @@ def log_ga4_query(query: str, property_id: str, **kwargs) -> None:
 
 def log_llm_request(prompt: str, model: str, **kwargs) -> None:
     """
-    記錄 LLM 請求日誌
+    記錄 LLM 請求日誌（不記錄完整提示詞）
     
     Args:
         prompt: 提示詞
         model: 模型名稱
         **kwargs: 其他參數
     """
+    # 過濾敏感數據
+    filtered_kwargs = _sensitive_filter.filter_dict(kwargs)
+    
     logger = get_logger("llm.request")
     logger.info(
         "LLM request",
         prompt_length=len(prompt),
+        prompt_preview=prompt[:50] + "..." if len(prompt) > 50 else prompt,
         model=model,
-        **kwargs
+        **filtered_kwargs
+    )
+
+
+def log_bigquery_query(query: str, property_id: str) -> None:
+    """
+    記錄 BigQuery 查詢日誌
+    
+    Args:
+        query: 查詢內容
+        property_id: 屬性ID
+    """
+    logger = get_logger("bigquery")
+    logger.info(
+        "BigQuery query executed",
+        query=query[:500] + "..." if len(query) > 500 else query,
+        property_id=property_id,
+        timestamp=datetime.utcnow().isoformat()
     )
 
 

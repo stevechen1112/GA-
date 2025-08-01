@@ -229,6 +229,12 @@ datasets/
 # Google Cloud credentials
 service-account-key.json
 gcp-credentials.json
+ga-plus-service-*.json
+*.json
+!.gitignore
+!package.json
+!package-lock.json
+!tsconfig.json
 
 # Testing
 .pytest_cache/

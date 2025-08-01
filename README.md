@@ -29,6 +29,8 @@ GA+ 是一個創新的SaaS產品，讓用戶可以用自然語言與Google Analy
 [向量資料庫] ←→ [GA4/BigQuery路由器] ↔ [數據服務層]
                                     ↓
 [快取層Redis] ←→ [GA4 API] + [BigQuery] + [數據庫]
+                                    ↓
+              [依賴注入容器] ←→ [服務管理]
 ```
 
 ### 核心技術棧
@@ -37,21 +39,31 @@ GA+ 是一個創新的SaaS產品，讓用戶可以用自然語言與Google Analy
 - Python 3.11 + FastAPI
 - PostgreSQL (用戶數據) + Redis (快取)
 - Docker容器化部署
+- 依賴注入架構模式
 
 **AI/ML組件**
 - OpenAI GPT-4o 或 Claude 3.5 Sonnet
 - Weaviate向量資料庫 (語義搜尋)
 - 自研異常檢測算法
+- 並發控制機制 (Semaphore)
 
 **數據整合**
 - Google Analytics Data API v1
 - Google BigQuery API
 - 智能路由器 (GA4 API ↔ BigQuery)
+- 連接池優化
 
 **基礎設施**
 - AWS ECS 或 Google Cloud Run
 - AWS RDS/CloudSQL + Redis Cache
 - CloudWatch/Cloud Monitoring
+- 速率限制 (slowapi)
+
+**安全性**
+- 環境變數管理
+- JWT 認證
+- 敏感數據過濾
+- Pydantic 數據驗證
 
 ## 🚀 快速開始
 
@@ -75,6 +87,9 @@ cd GA-
 ```bash
 cp .env.example .env
 # 編輯 .env 文件，填入必要的API金鑰和配置
+
+# 生成安全密鑰
+python scripts/generate_secrets.py
 ```
 
 3. **啟動開發環境**
@@ -102,19 +117,28 @@ python scripts/init_db.py
 ### 🎯 核心功能 (已實現)
 
 1. **基礎數據查詢**
-   - 支援10+種常見查詢類型
+   - 支援22種專業查詢類型
    - 自然語言意圖識別
-   - 即時數據回應
+   - 即時數據回應 (<2秒)
 
 2. **趨勢分析與比較**
    - 多維度數據分析
    - 時間序列比較
    - 排名和關聯分析
+   - 異常檢測算法
 
 3. **智能洞察與建議**
    - 異常檢測和預警
-   - 根因分析引擎
-   - 個性化行動建議
+   - 趨勢分析引擎
+   - 智能快取優化
+   - BigQuery大數據支援
+
+4. **技術優化完成**
+   - 環境變數安全管理
+   - API速率限制保護
+   - 記憶體洩漏防護
+   - 並發控制機制
+   - 依賴注入架構
 
 ### 🔮 未來擴展功能
 
@@ -145,12 +169,22 @@ GA+/
 ├── app/                    # 後端應用程式
 │   ├── api/               # API路由
 │   ├── core/              # 核心配置
+│   │   ├── config.py      # 環境配置
+│   │   ├── container.py   # 依賴注入容器
+│   │   ├── rate_limiter.py # 速率限制
+│   │   └── security.py    # 安全相關
 │   ├── models/            # 數據模型
 │   ├── services/          # 業務邏輯
+│   │   ├── cache_service_v2.py    # 優化的快取服務
+│   │   ├── llm_service_v2.py      # 優化的LLM服務
+│   │   ├── ga4_service_v2.py      # 優化的GA4服務
+│   │   └── bigquery_service.py    # BigQuery服務
 │   └── utils/             # 工具函數
 ├── frontend/              # 前端應用程式
 ├── docs/                  # 文檔
 ├── scripts/               # 部署腳本
+│   ├── generate_secrets.py # 密鑰生成工具
+│   └── cleanup_project.py  # 專案清理工具
 ├── tests/                 # 測試文件
 └── docker-compose.yml     # Docker配置
 ```
@@ -172,18 +206,21 @@ GA+/
 
 ## 📊 專案狀態
 
-- **當前版本**: v0.1.0 (MVP階段)
-- **開發進度**: 第一階段 - MVP基礎版開發中
+- **當前版本**: v0.2.0 (智能分析版完成)
+- **開發進度**: 第二階段已完成，準備進入第三階段
 - **團隊規模**: 6人核心團隊
-- **預計發布**: 2024年Q2
+- **技術完成度**: 
+  - 第一階段 (MVP): 87.5% ✅
+  - 第二階段 (智能分析): 100% ✅
+  - 第三階段 (企業級): 0% ⚪
 
 ## 📈 里程碑
 
 - [x] 專案啟動和團隊組建
 - [x] 技術架構設計完成
-- [ ] MVP版本開發 (週1-6)
-- [ ] 智能分析版本 (週7-12)
-- [ ] 企業智能版本 (週13-18)
+- [x] MVP版本開發 (週1-6) - 2025-01-24完成
+- [x] 智能分析版本 (週7-12) - 2025-01-24完成
+- [ ] 企業智能版本 (週13-18) - 預計2025-05-01
 
 ## 🤝 團隊
 

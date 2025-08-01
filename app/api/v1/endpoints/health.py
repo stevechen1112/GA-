@@ -4,12 +4,16 @@
 提供系統健康狀態檢查功能
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 import time
 import structlog
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.dependencies import get_database, get_ga4_service, get_llm_service
+from app.services.ga4_service import GA4Service
+from app.services.llm_service import LLMService
 
 router = APIRouter()
 logger = structlog.get_logger()
@@ -32,7 +36,11 @@ async def health_check() -> Dict[str, Any]:
 
 
 @router.get("/detailed")
-async def detailed_health_check() -> Dict[str, Any]:
+async def detailed_health_check(
+    db: Session = Depends(get_database),
+    ga4_service: GA4Service = Depends(get_ga4_service),
+    llm_service: LLMService = Depends(get_llm_service)
+) -> Dict[str, Any]:
     """
     詳細健康檢查
     
@@ -51,7 +59,8 @@ async def detailed_health_check() -> Dict[str, Any]:
     
     # 檢查資料庫連接
     try:
-        # TODO: 實現資料庫連接檢查
+        # 執行簡單的資料庫查詢
+        db.execute("SELECT 1")
         health_status["services"]["database"] = {
             "status": "healthy",
             "message": "Database connection successful"
@@ -81,11 +90,27 @@ async def detailed_health_check() -> Dict[str, Any]:
     
     # 檢查 GA4 API 連接
     try:
-        # TODO: 實現 GA4 API 連接檢查
-        health_status["services"]["ga4_api"] = {
-            "status": "healthy",
-            "message": "GA4 API connection successful"
-        }
+        # 檢查 GA4 服務是否可用
+        if settings.USE_MOCK_GA4_API:
+            health_status["services"]["ga4_api"] = {
+                "status": "healthy",
+                "message": "GA4 API (mock mode) is operational"
+            }
+        else:
+            # 執行簡單的 GA4 查詢測試
+            test_result = await ga4_service.execute_query({
+                "metrics": [{"name": "totalUsers"}],
+                "date_ranges": [{"start_date": "today", "end_date": "today"}],
+                "limit": 1
+            })
+            
+            if test_result.get("error"):
+                raise Exception(test_result.get("message", "GA4 query failed"))
+                
+            health_status["services"]["ga4_api"] = {
+                "status": "healthy",
+                "message": "GA4 API connection successful"
+            }
     except Exception as e:
         logger.error("GA4 API health check failed", error=str(e))
         health_status["services"]["ga4_api"] = {
@@ -96,11 +121,22 @@ async def detailed_health_check() -> Dict[str, Any]:
     
     # 檢查 LLM API 連接
     try:
-        # TODO: 實現 LLM API 連接檢查
-        health_status["services"]["llm_api"] = {
-            "status": "healthy",
-            "message": "LLM API connection successful"
-        }
+        # 檢查 LLM 服務是否可用
+        if settings.USE_MOCK_LLM_API:
+            health_status["services"]["llm_api"] = {
+                "status": "healthy",
+                "message": "LLM API (mock mode) is operational"
+            }
+        else:
+            # 執行簡單的 LLM 測試
+            test_response = await llm_service.generate_completion("健康檢查測試")
+            if not test_response or "抱歉" in test_response:
+                raise Exception("LLM service returned error response")
+                
+            health_status["services"]["llm_api"] = {
+                "status": "healthy",
+                "message": "LLM API connection successful"
+            }
     except Exception as e:
         logger.error("LLM API health check failed", error=str(e))
         health_status["services"]["llm_api"] = {

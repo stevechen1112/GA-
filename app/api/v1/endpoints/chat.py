@@ -14,19 +14,14 @@ from app.core.config import settings
 from app.services.query_parser import QueryParser
 from app.services.ga4_service import GA4Service
 from app.services.llm_service import LLMService
+from app.services.smart_router import SmartRouter
 from app.core.logging import log_request, log_response
+from app.core.dependencies import get_query_parser, get_ga4_service, get_llm_service, get_smart_router
+from app.core.rate_limiter import limiter, RateLimits
+from app.api.v1.schemas.validators import StrictChatRequest, sanitize_input
 
 router = APIRouter()
 logger = structlog.get_logger()
-
-
-class ChatRequest(BaseModel):
-    """聊天請求模型"""
-    message: str
-    property_id: Optional[str] = None
-    date_range: Optional[str] = "last_30_days"
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -49,11 +44,12 @@ class QueryIntent(BaseModel):
 
 
 @router.post("/", response_model=ChatResponse)
+@limiter.limit(RateLimits.CHAT)
 async def chat_with_ga4(
-    request: ChatRequest,
-    query_parser: QueryParser = Depends(),
-    ga4_service: GA4Service = Depends(),
-    llm_service: LLMService = Depends()
+    request: StrictChatRequest,  # 使用嚴格驗證
+    query_parser: QueryParser = Depends(get_query_parser),
+    smart_router: SmartRouter = Depends(get_smart_router),
+    llm_service: LLMService = Depends(get_llm_service)
 ) -> ChatResponse:
     """
     與 GA4 數據進行自然語言對話
@@ -61,7 +57,7 @@ async def chat_with_ga4(
     Args:
         request: 聊天請求
         query_parser: 查詢解析器
-        ga4_service: GA4 服務
+        smart_router: 智能路由器
         llm_service: LLM 服務
         
     Returns:
@@ -88,9 +84,9 @@ async def chat_with_ga4(
         logger.info("Generating GA4 query", request_id=request_id, intent=intent.intent)
         ga4_query = await query_parser.generate_ga4_query(intent, request.property_id)
         
-        # 3. 執行 GA4 查詢
-        logger.info("Executing GA4 query", request_id=request_id, query=ga4_query)
-        ga4_data = await ga4_service.execute_query(ga4_query, request.property_id)
+        # 3. 使用智能路由器執行查詢
+        logger.info("Executing query via smart router", request_id=request_id, query=ga4_query)
+        ga4_data = await smart_router.execute_query(ga4_query, request.property_id)
         
         # 4. 使用 LLM 生成自然語言回應
         logger.info("Generating LLM response", request_id=request_id)
@@ -155,6 +151,33 @@ async def chat_with_ga4(
         )
 
 
+@router.get("/routing-stats")
+async def get_routing_stats(
+    smart_router: SmartRouter = Depends(get_smart_router)
+) -> Dict[str, Any]:
+    """
+    獲取智能路由統計信息
+    
+    Args:
+        smart_router: 智能路由器
+        
+    Returns:
+        路由統計信息
+    """
+    try:
+        stats = await smart_router.get_routing_stats()
+        return {
+            "status": "success",
+            "data": stats
+        }
+    except Exception as e:
+        logger.error("Failed to get routing stats", error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "Failed to get routing stats", "message": str(e)}
+        )
+
+
 @router.get("/supported-queries")
 async def get_supported_queries() -> Dict[str, Any]:
     """
@@ -216,7 +239,7 @@ async def get_supported_queries() -> Dict[str, Any]:
 @router.post("/test-query")
 async def test_query(
     request: ChatRequest,
-    query_parser: QueryParser = Depends()
+    query_parser: QueryParser = Depends(get_query_parser)
 ) -> Dict[str, Any]:
     """
     測試查詢解析（開發用）
@@ -234,7 +257,7 @@ async def test_query(
         
         return {
             "original_query": request.message,
-            "parsed_intent": intent.dict(),
+            "parsed_intent": intent.to_dict(),
             "generated_ga4_query": ga4_query,
             "status": "success"
         }

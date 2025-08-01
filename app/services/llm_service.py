@@ -20,7 +20,9 @@ class LLMService:
     """LLM 服務類別"""
     
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        self.use_mock = settings.USE_MOCK_LLM_API
+        if not self.use_mock:
+            self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.OPENAI_MODEL
         self.max_tokens = settings.OPENAI_MAX_TOKENS
         self.temperature = settings.OPENAI_TEMPERATURE
@@ -37,6 +39,10 @@ class LLMService:
         """
         try:
             log_llm_request(prompt=prompt, model=self.model)
+            
+            # 如果使用模擬模式，返回模擬回應
+            if self.use_mock:
+                return self._get_mock_response(prompt)
             
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -283,4 +289,103 @@ class LLMService:
                 "哪些頁面表現最好？"
             ]
         
-        return suggestions 
+        return suggestions
+    
+    def _get_mock_response(self, prompt: str) -> str:
+        """
+        生成模擬 LLM 回應（用於開發和測試）
+        
+        Args:
+            prompt: 提示詞
+            
+        Returns:
+            模擬回應
+        """
+        # 根據提示詞關鍵字生成不同的模擬回應
+        prompt_lower = prompt.lower()
+        
+        if "訪客" in prompt_lower or "用戶" in prompt_lower or "users" in prompt_lower:
+            return """根據您的 GA4 數據分析，以下是關於訪客的洞察：
+
+📊 **訪客概況**
+- 總訪客數：12,456 人
+- 新訪客：8,234 人 (66.1%)
+- 回訪者：4,222 人 (33.9%)
+
+📈 **趨勢分析**
+- 與上週相比增長 15.3%
+- 移動端訪客占 68.2%
+- 桌面端訪客占 31.8%
+
+💡 **建議**
+1. 繼續優化移動端體驗
+2. 加強回訪者的留存策略
+3. 分析新訪客的來源渠道"""
+
+        elif "頁面" in prompt_lower or "page" in prompt_lower:
+            return """根據您的 GA4 頁面分析數據：
+
+🏃 **熱門頁面排行**
+1. 首頁 - 3,456 次瀏覽
+2. 產品頁面 - 2,134 次瀏覽  
+3. 關於我們 - 1,567 次瀏覽
+4. 聯絡我們 - 987 次瀏覽
+5. 部落格 - 765 次瀏覽
+
+⏱️ **頁面表現**
+- 平均停留時間：2分34秒
+- 跳出率：45.2%
+- 頁面載入速度：1.8秒
+
+🎯 **優化建議**
+1. 提升載入速度較慢的頁面
+2. 優化跳出率較高的頁面內容
+3. 增加內部連結提升頁面深度"""
+
+        elif "流量" in prompt_lower or "來源" in prompt_lower or "source" in prompt_lower:
+            return """根據您的 GA4 流量來源分析：
+
+🌐 **主要流量來源**
+1. 直接流量 - 45.2% (5,634 次會話)
+2. 搜尋引擎 - 32.1% (4,002 次會話)
+3. 社群媒體 - 15.7% (1,956 次會話)
+4. 推薦網站 - 4.8% (598 次會話)
+5. 電子郵件 - 2.2% (274 次會話)
+
+🔍 **搜尋引擎詳細**
+- Google: 89.3%
+- Bing: 7.2%
+- Yahoo: 3.5%
+
+📱 **社群媒體詳細**
+- Facebook: 52.1%
+- Instagram: 28.7%
+- LinkedIn: 19.2%
+
+💡 **行銷建議**
+1. 加強 SEO 優化提升搜尋排名
+2. 增加社群媒體互動
+3. 建立更多優質的外部連結"""
+
+        else:
+            return """感謝您使用 GA+ 進行數據分析！
+
+📊 **數據概覽**
+基於您的 GA4 數據，我為您整理了以下關鍵指標：
+
+- 總會話數：15,678 次
+- 總用戶數：12,456 人  
+- 平均會話時長：3分42秒
+- 轉換率：2.8%
+
+📈 **主要發現**
+1. 移動端流量持續增長，占總流量的 68%
+2. 週末的用戶參與度比平日高 23%
+3. 產品頁面的停留時間較長，顯示用戶興趣度高
+
+🎯 **建議行動**
+1. 優化移動端用戶體驗
+2. 在週末投放更多行銷活動
+3. 加強產品頁面的轉換漏斗優化
+
+需要更詳細的分析嗎？您可以問我具體的問題！"""

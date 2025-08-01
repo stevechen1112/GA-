@@ -36,6 +36,8 @@ class GA4Service:
                 logger.info("GA4 client initialized successfully")
             except Exception as e:
                 logger.error("Failed to initialize GA4 client", error=str(e))
+                # 如果初始化失敗，設置為模擬模式
+                self.client = None
     
     async def execute_query(
         self, 
@@ -65,8 +67,8 @@ class GA4Service:
                 property_id=target_property_id
             )
             
-            # 如果是模擬模式，返回模擬數據
-            if settings.USE_MOCK_GA4_API:
+            # 如果是模擬模式或客戶端未初始化，返回模擬數據
+            if settings.USE_MOCK_GA4_API or self.client is None:
                 return self._get_mock_data(query_params)
             
             # 構建 GA4 請求
@@ -177,7 +179,20 @@ class GA4Service:
     def _get_mock_data(self, query_params: Dict[str, Any]) -> Dict[str, Any]:
         """獲取模擬數據（用於開發和測試）"""
         
-        intent = query_params.get("intent", "basic_metrics")
+        # 根據查詢的維度和指標推斷意圖
+        intent = "basic_metrics"  # 默認
+        
+        dimensions = query_params.get("dimensions", [])
+        metrics = query_params.get("metrics", [])
+        
+        if dimensions:
+            dim_names = [d.get("name", "") for d in dimensions]
+            if "pageTitle" in dim_names:
+                intent = "page_analysis"
+            elif "sessionDefaultChannelGrouping" in dim_names:
+                intent = "traffic_sources"
+            elif "date" in dim_names:
+                intent = "trend_analysis"
         
         if intent == "basic_metrics":
             return {

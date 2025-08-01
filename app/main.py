@@ -9,14 +9,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
 import structlog
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.logging import setup_logging
+from app.core.rate_limiter import limiter, custom_rate_limit_exceeded_handler
 
 # 設置結構化日誌
 setup_logging()
 logger = structlog.get_logger()
+
+# 新增 UTF8JSONResponse 以包含 charset=utf-8
+class UTF8JSONResponse(JSONResponse):
+    """自訂 JSONResponse，強制回傳 UTF-8 Charset"""
+    media_type = "application/json; charset=utf-8"
 
 def create_application() -> FastAPI:
     """
@@ -28,6 +37,7 @@ def create_application() -> FastAPI:
         version=settings.APP_VERSION,
         docs_url="/docs" if settings.DEBUG else None,
         redoc_url="/redoc" if settings.DEBUG else None,
+        default_response_class=UTF8JSONResponse,  # <-- 這行確保所有 JSON 回應包含 charset
     )
 
     # 添加中間件
@@ -43,6 +53,10 @@ def create_application() -> FastAPI:
         TrustedHostMiddleware,
         allowed_hosts=["*"] if settings.DEBUG else settings.ALLOWED_HOSTS
     )
+    
+    # 添加限流中間件
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
 
     # 包含 API 路由
     app.include_router(api_router, prefix="/api/v1")
